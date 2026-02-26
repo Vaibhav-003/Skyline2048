@@ -26,9 +26,9 @@ flutter:
     - assets/tile_1.svg
     - assets/tile_2.svg
     - assets/tile_3.svg
-    - assets/tile_4.png
-    - assets/tile_5.png
-    - assets/tile_6.png
+    - assets/tile_4.svg
+    - assets/tile_5.svg
+    - assets/tile_6.svg
     - assets/tile_7.png
     - assets/tile_8.png
     - assets/tile_9.png
