@@ -1,16 +1,16 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:skyline2048/models/board.dart';
 import 'package:skyline2048/models/tile.dart';
-import 'package:skyline2048/providers/game_provider.dart';
+import 'package:skyline2048/viewmodels/game_viewmodel.dart';
 
 // ---------------------------------------------------------------------------
-// Helper to seed a GameProvider with an arbitrary 4×4 grid of values.
+// Helper to seed a GameViewModel with an arbitrary 4×4 grid of values.
 // Pass a flat list of 16 ints (0 = empty).
 // ---------------------------------------------------------------------------
-GameProvider _providerFromValues(List<int> values) {
+GameViewModel _providerFromValues(List<int> values) {
   assert(values.length == 16);
   int idSeed = 0;
-  final provider = GameProvider();
+  final provider = GameViewModel();
   provider.board = Board(
     currentTiles: List.generate(4, (r) {
       return List.generate(4, (c) {
@@ -23,12 +23,10 @@ GameProvider _providerFromValues(List<int> values) {
   return provider;
 }
 
-// Extracts the flat list of values after a move.
-List<int> _values(GameProvider p) =>
+List<int> _values(GameViewModel p) =>
     p.board.currentTiles.expand((row) => row).map((t) => t.value).toList();
 
-// Extracts the flat list of isMerged flags.
-List<bool> _mergedFlags(GameProvider p) =>
+List<bool> _mergedFlags(GameViewModel p) =>
     p.board.currentTiles.expand((row) => row).map((t) => t.isMerged).toList();
 
 void main() {
@@ -37,7 +35,6 @@ void main() {
   // -------------------------------------------------------------------------
   group('moveLeft –', () {
     test('single pair merges correctly', () {
-      // Row: [1,1,0,0] → [2,0,0,0]
       final p = _providerFromValues([
         1,
         1,
@@ -61,7 +58,6 @@ void main() {
     });
 
     test('double pair in one row — THE critical scenario [2,2,1,1]', () {
-      // [2,2,1,1] → [3,2,0,0]
       final p = _providerFromValues([
         2,
         2,
@@ -254,7 +250,6 @@ void main() {
     });
 
     test('score increases correctly on merge', () {
-      // merging two 1-tiles → value 2 → score += 2^2 = 4
       final p = _providerFromValues([
         1,
         1,
@@ -274,7 +269,7 @@ void main() {
         0,
       ]);
       p.moveLeft();
-      expect(p.board.score, 4); // pow(2, 2) = 4
+      expect(p.board.score, 4);
     });
 
     test('double pair score: [2,2,1,1] → 2^3 + 2^2 = 8+4 = 12', () {
@@ -472,7 +467,6 @@ void main() {
   // -------------------------------------------------------------------------
   group('moveUp –', () {
     test('single pair in column merges upward', () {
-      // col-0 has [1,1,0,0] vertically → after moveUp col-0 = [2,0,0,0]
       final p = _providerFromValues([
         1,
         0,
@@ -492,7 +486,6 @@ void main() {
         0,
       ]);
       p.moveUp();
-      // col 0 after move
       final col0 = [
         0,
         1,
@@ -594,37 +587,34 @@ void main() {
       expect(col0, [0, 0, 0, 2]);
     });
 
-    test(
-      'double pair [2,2,1,1] vertically (top→bottom) → [0,0,3,2] downward',
-      () {
-        final p = _providerFromValues([
-          2,
-          0,
-          0,
-          0,
-          2,
-          0,
-          0,
-          0,
-          1,
-          0,
-          0,
-          0,
-          1,
-          0,
-          0,
-          0,
-        ]);
-        p.moveDown();
-        final col0 = [
-          0,
-          1,
-          2,
-          3,
-        ].map((r) => p.board.currentTiles[r][0].value).toList();
-        expect(col0, [0, 0, 3, 2]);
-      },
-    );
+    test('double pair vertically → downward [0,0,3,2]', () {
+      final p = _providerFromValues([
+        2,
+        0,
+        0,
+        0,
+        2,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+      ]);
+      p.moveDown();
+      final col0 = [
+        0,
+        1,
+        2,
+        3,
+      ].map((r) => p.board.currentTiles[r][0].value).toList();
+      expect(col0, [0, 0, 3, 2]);
+    });
   });
 
   // -------------------------------------------------------------------------
@@ -637,7 +627,7 @@ void main() {
       expect(_values(p), List.filled(16, 0));
     });
 
-    test('single tile, no merge, just slides on moveLeft', () {
+    test('single tile slides left', () {
       final p = _providerFromValues([
         0,
         0,
@@ -660,34 +650,30 @@ void main() {
       expect(_values(p).sublist(0, 4), [1, 0, 0, 0]);
     });
 
-    test(
-      'same value not contiguous after compaction [1,0,0,1] → [2,0,0,0]',
-      () {
-        final p = _providerFromValues([
-          1,
-          0,
-          0,
-          1,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-        ]);
-        p.moveLeft();
-        expect(_values(p).sublist(0, 4), [2, 0, 0, 0]);
-      },
-    );
+    test('[1,0,0,1] → [2,0,0,0]', () {
+      final p = _providerFromValues([
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+      ]);
+      p.moveLeft();
+      expect(_values(p).sublist(0, 4), [2, 0, 0, 0]);
+    });
 
-    test('three same [1,1,1,0] — only first pair merges, remainder slides', () {
-      // After compact: [1,1,1,0] → merge [1,1] → [2,0,1,0] → compact → [2,1,0,0]
+    test('[1,1,1,0] → [2,1,0,0]', () {
       final p = _providerFromValues([
         1,
         1,
@@ -710,7 +696,7 @@ void main() {
       expect(_values(p).sublist(0, 4), [2, 1, 0, 0]);
     });
 
-    test('multiple rows are all independent', () {
+    test('multiple rows are independent', () {
       final p = _providerFromValues([
         1,
         1,

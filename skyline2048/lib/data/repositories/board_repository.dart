@@ -1,10 +1,9 @@
 import 'package:hive/hive.dart';
 import 'package:skyline2048/models/board.dart';
 
-class BoardStorage {
-  final boardBox = Hive.box('board');
-
-  final scoreBox = Hive.box('bestScores');
+class BoardRepository {
+  Box get _boardBox => Hive.box('board');
+  Box get _scoreBox => Hive.box('bestScores');
 
   static Future<void> openBoxes() async {
     await Hive.openBox('board');
@@ -12,11 +11,11 @@ class BoardStorage {
   }
 
   void saveBoard(Board board) {
-    boardBox.put('board', board);
+    _boardBox.put('board', board);
   }
 
   Board? loadBoard() {
-    return boardBox.get('board');
+    return _boardBox.get('board');
   }
 
   void saveBestScore(int score) {
@@ -27,10 +26,10 @@ class BoardStorage {
     } else {
       bestScores = [score];
     }
-    scoreBox.put('bestScores', bestScores);
+    _scoreBox.put('bestScores', bestScores);
   }
 
   List<int>? loadBestScores() {
-    return scoreBox.get('bestScores');
+    return _scoreBox.get('bestScores');
   }
 }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
-import 'package:skyline2048/screens/home_page.dart';
+import 'package:skyline2048/views/screens/home_screen.dart';
 
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});
@@ -17,7 +17,7 @@ class SplashScreen extends StatelessWidget {
               if (!context.mounted) return;
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const HomePage()),
+                MaterialPageRoute(builder: (context) => const HomeScreen()),
               );
             });
           },

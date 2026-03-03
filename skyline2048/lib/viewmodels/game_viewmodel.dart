@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:skyline2048/models/board.dart';
 import 'package:skyline2048/models/tile.dart';
 
-class GameProvider extends ChangeNotifier {
+/// ViewModel for the game. Holds all game state and business logic.
+/// Views observe this class via Consumer[GameViewModel] / [context.watch<GameViewModel>()].
+class GameViewModel extends ChangeNotifier {
   final double _l1Probability = 0.95;
 
   static List<int> _twoDistinctIndexes(int length) {
@@ -32,12 +34,11 @@ class GameProvider extends ChangeNotifier {
     return _bestScore;
   }
 
-  GameProvider() {
+  GameViewModel() {
     _initBoard();
   }
 
-  void _initBoard() async {
- 
+  void _initBoard() {
     final positions = _twoDistinctIndexes(16);
     board = Board(
       currentTiles: List.generate(4, (row) {
@@ -90,8 +91,6 @@ class GameProvider extends ChangeNotifier {
 
   // ------- internal helpers -------
 
-  /// Clears isNew / isMerged flags at the start of each move so animations
-  /// only play once.
   void _clearFlags() {
     for (int r = 0; r < 4; r++) {
       for (int c = 0; c < 4; c++) {
@@ -147,28 +146,22 @@ class GameProvider extends ChangeNotifier {
     )) {
       return false;
     }
-
     return _canMergeAnyTile();
   }
 
   bool _canMergeAnyTile() {
     final horizontal = board.currentTiles.any((row) {
       for (int i = 1; i < row.length; i++) {
-        if (row[i - 1].value == row[i].value) {
-          return true;
-        }
+        if (row[i - 1].value == row[i].value) return true;
       }
       return false;
     });
     final vertical = _transposedTiles(board.currentTiles).any((row) {
       for (int i = 1; i < row.length; i++) {
-        if (row[i - 1].value == row[i].value) {
-          return true;
-        }
+        if (row[i - 1].value == row[i].value) return true;
       }
       return false;
     });
-
     return horizontal || vertical;
   }
 
@@ -195,31 +188,26 @@ class GameProvider extends ChangeNotifier {
       row = [...nonZero, ...zeros];
       result.add(row);
     }
-
     return result;
   }
 
   void moveUp() {
     _clearFlags();
     if (_canMergeAnyTile()) {
-      List<List<Tile>> mergedBoard = _mergeLeft(
-        _transposedTiles(board.currentTiles),
-      );
+      final mergedBoard = _mergeLeft(_transposedTiles(board.currentTiles));
       board.previousTiles = board.currentTiles;
       board.currentTiles = _transposedTiles(mergedBoard);
     }
-
     notifyListeners();
   }
 
   void moveDown() {
     _clearFlags();
     if (_canMergeAnyTile()) {
-      List<List<Tile>> mergedBoard = _mergeLeft(
+      final mergedBoard = _mergeLeft(
         _mirroredTiles(_transposedTiles(board.currentTiles)),
       );
       board.previousTiles = board.currentTiles;
-
       board.currentTiles = _transposedTiles(_mirroredTiles(mergedBoard));
     }
     notifyListeners();
@@ -228,9 +216,7 @@ class GameProvider extends ChangeNotifier {
   void moveRight() {
     _clearFlags();
     if (_canMergeAnyTile()) {
-      List<List<Tile>> mergedBoard = _mergeLeft(
-        _mirroredTiles(board.currentTiles),
-      );
+      final mergedBoard = _mergeLeft(_mirroredTiles(board.currentTiles));
       board.previousTiles = board.currentTiles;
       board.currentTiles = _mirroredTiles(mergedBoard);
     }
@@ -243,7 +229,6 @@ class GameProvider extends ChangeNotifier {
       board.previousTiles = board.currentTiles;
       board.currentTiles = _mergeLeft(board.currentTiles);
     }
-
     notifyListeners();
   }
 

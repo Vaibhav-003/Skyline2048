@@ -39,7 +39,6 @@ class _TileWidgetState extends State<TileWidget>
     } else if (widget.tile.isMerged) {
       _runMergeAnimation();
     } else {
-      // No animation — just show at full scale.
       _scale = AlwaysStoppedAnimation(1.0);
     }
   }
@@ -47,11 +46,9 @@ class _TileWidgetState extends State<TileWidget>
   @override
   void didUpdateWidget(TileWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Trigger merge pulse when provider marks this tile as merged.
     if (widget.tile.isMerged && !oldWidget.tile.isMerged) {
       _runMergeAnimation();
     }
-    // Re-trigger spawn if somehow a new tile reuses the same widget slot.
     if (widget.tile.isNew && !oldWidget.tile.isNew) {
       _runSpawnAnimation();
     }
@@ -95,10 +92,6 @@ class _TileWidgetState extends State<TileWidget>
             fit: BoxFit.cover,
           ),
         ),
-        /*Text(
-            pow(2, widget.tile.value).toString(),
-            style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold),
-          ), */
       ),
     );
   }

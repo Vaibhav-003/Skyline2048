@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:skyline2048/providers/game_provider.dart';
+import 'package:skyline2048/viewmodels/game_viewmodel.dart';
 
 enum ScoreType { score, best }
 
@@ -9,7 +9,14 @@ class ScoreColumn extends StatelessWidget {
   final ScoreType scoreType;
   final IconData icon;
   final VoidCallback onPressed;
-  const ScoreColumn({super.key, required this.title, required this.scoreType, required this.icon, required this.onPressed});
+
+  const ScoreColumn({
+    super.key,
+    required this.title,
+    required this.scoreType,
+    required this.icon,
+    required this.onPressed,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -31,10 +38,10 @@ class ScoreColumn extends StatelessWidget {
                   title,
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
-                Consumer<GameProvider>(
-                  builder: (context, gameProvider, child) {
+                Consumer<GameViewModel>(
+                  builder: (context, gameViewModel, child) {
                     return Text(
-                      "${scoreType == ScoreType.score ? gameProvider.board.score : gameProvider.bestScore}",
+                      '${scoreType == ScoreType.score ? gameViewModel.board.score : gameViewModel.bestScore}',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
