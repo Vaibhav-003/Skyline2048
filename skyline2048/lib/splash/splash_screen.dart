@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
-import 'package:skyline2048/homepage/home_page.dart';
+import 'package:skyline2048/screens/home_page.dart';
 
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});

@@ -2,33 +2,260 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:skyline2048/models/board.dart';
+import 'package:skyline2048/models/tile.dart';
 
 class GameProvider extends ChangeNotifier {
-  static const List<int> randomTileIndexes = [1, 2, 1, 2, 1];
+  final double _l1Probability = 0.95;
 
-  static List<int> generateTwoRandomTileIndexes(int length) {
-    final random = Random();
-    final int firstIndex = random.nextInt(length);
-    int secondIndex;
+  static List<int> _twoDistinctIndexes(int length) {
+    final rng = Random();
+    final int a = rng.nextInt(length);
+    int b;
     do {
-      secondIndex = random.nextInt(length);
-    } while (secondIndex == firstIndex);
-
-    return [firstIndex, secondIndex];
+      b = rng.nextInt(length);
+    } while (b == a);
+    return [a, b];
   }
 
-  static List<int> randomIndexes = generateTwoRandomTileIndexes(16);
+  // ------- identity counter -------
+  int _idCounter = 0;
+  int _nextId() => _idCounter++;
 
-  static List<int> randomTileValues = generateTwoRandomTileIndexes(5);
+  // ------- state -------
+  late Board board;
 
-  Board board = Board(
-    currentTiles: {
-      randomIndexes[0]: randomTileIndexes[randomTileValues[0]],
-      randomIndexes[1]: randomTileIndexes[randomTileValues[1]],
-    },
-    previousTiles: null,
-    score: 0,
-  );
+  int _bestScore = 0;
+  int get bestScore {
+    if (board.score > _bestScore) {
+      _bestScore = board.score;
+    }
+    return _bestScore;
+  }
 
-  
-} 
+  GameProvider() {
+    _initBoard();
+  }
+
+  void _initBoard() async {
+ 
+    final positions = _twoDistinctIndexes(16);
+    board = Board(
+      currentTiles: List.generate(4, (row) {
+        return List.generate(4, (col) {
+          final flat = row * 4 + col;
+          if (flat == positions[0]) {
+            return Tile(
+              id: _nextId(),
+              value: _l1Probability > Random().nextDouble() ? 1 : 2,
+              isNew: true,
+            );
+          }
+          if (flat == positions[1]) {
+            return Tile(
+              id: _nextId(),
+              value: _l1Probability > Random().nextDouble() ? 1 : 2,
+              isNew: true,
+            );
+          }
+          return Tile(id: _nextId(), value: 0);
+        });
+      }),
+      previousTiles: null,
+      score: 0,
+    );
+  }
+
+  double get _probability {
+    final probability = _l1Probability - (board.score ~/ 200) * 0.05;
+    return probability > 0.5 ? probability : 0.5;
+  }
+
+  // ------- getters -------
+
+  /// Flat list of all 16 tiles (including empty ones, value == 0).
+  List<Tile> get tiles => board.currentTiles.expand((row) => row).toList();
+
+  /// Only non-empty tiles with their row/col position — used by GameBoard
+  /// for AnimatedPositioned rendering.
+  List<({int row, int col, Tile tile})> get tilePositions {
+    final result = <({int row, int col, Tile tile})>[];
+    for (int r = 0; r < 4; r++) {
+      for (int c = 0; c < 4; c++) {
+        final t = board.currentTiles[r][c];
+        if (t.value != 0) result.add((row: r, col: c, tile: t));
+      }
+    }
+    return result;
+  }
+
+  // ------- internal helpers -------
+
+  /// Clears isNew / isMerged flags at the start of each move so animations
+  /// only play once.
+  void _clearFlags() {
+    for (int r = 0; r < 4; r++) {
+      for (int c = 0; c < 4; c++) {
+        final t = board.currentTiles[r][c];
+        if (t.isNew || t.isMerged) {
+          board.currentTiles[r][c] = t.copyWith(isNew: false, isMerged: false);
+        }
+      }
+    }
+  }
+
+  // ------- public API -------
+
+  void addNewTile() {
+    if (_isGameOver) return;
+    final empty = <(int, int)>[];
+    for (int r = 0; r < 4; r++) {
+      for (int c = 0; c < 4; c++) {
+        if (board.currentTiles[r][c].value == 0) empty.add((r, c));
+      }
+    }
+    if (empty.isEmpty) return;
+
+    final pick = empty[Random().nextInt(empty.length)];
+    final randomDouble = Random().nextDouble();
+    board.currentTiles[pick.$1][pick.$2] = Tile(
+      id: _nextId(),
+      value: _probability > randomDouble ? 1 : 2,
+      isNew: true,
+    );
+    notifyListeners();
+  }
+
+  List<List<Tile>> _transposedTiles(List<List<Tile>> tiles) {
+    return List.generate(4, (col) {
+      return List.generate(4, (row) {
+        return tiles[row][col];
+      });
+    });
+  }
+
+  List<List<Tile>> _mirroredTiles(List<List<Tile>> tiles) {
+    return List.generate(4, (row) {
+      return List.generate(4, (col) {
+        return tiles[row][3 - col];
+      });
+    });
+  }
+
+  bool get _isGameOver {
+    if (board.currentTiles.any(
+      (element) => element.any((element) => element.value == 0),
+    )) {
+      return false;
+    }
+
+    return _canMergeAnyTile();
+  }
+
+  bool _canMergeAnyTile() {
+    final horizontal = board.currentTiles.any((row) {
+      for (int i = 1; i < row.length; i++) {
+        if (row[i - 1].value == row[i].value) {
+          return true;
+        }
+      }
+      return false;
+    });
+    final vertical = _transposedTiles(board.currentTiles).any((row) {
+      for (int i = 1; i < row.length; i++) {
+        if (row[i - 1].value == row[i].value) {
+          return true;
+        }
+      }
+      return false;
+    });
+
+    return horizontal || vertical;
+  }
+
+  List<List<Tile>> _mergeLeft(List<List<Tile>> tiles) {
+    final result = <List<Tile>>[];
+    for (var row in tiles) {
+      final nonZeroTiles = row.where((tile) => tile.value != 0).toList();
+      final zeroTiles = row.where((tile) => tile.value == 0).toList();
+      row = [...nonZeroTiles, ...zeroTiles];
+
+      // Phase 1: merge adjacent equal tiles (left to right), skip consumed tile
+      for (var i = 0; i < row.length - 1; i++) {
+        if (row[i].value != 0 && row[i].value == row[i + 1].value) {
+          row[i] = Tile(id: _nextId(), value: row[i].value + 1, isMerged: true);
+          row[i + 1] = Tile(id: _nextId(), value: 0);
+          board.score += pow(2, row[i].value).toInt();
+          i++; // skip the consumed tile so it can't be re-merged
+        }
+      }
+
+      // Phase 2: compact — push zeros to the right
+      final nonZero = row.where((t) => t.value != 0).toList();
+      final zeros = row.where((t) => t.value == 0).toList();
+      row = [...nonZero, ...zeros];
+      result.add(row);
+    }
+
+    return result;
+  }
+
+  void moveUp() {
+    _clearFlags();
+    if (_canMergeAnyTile()) {
+      List<List<Tile>> mergedBoard = _mergeLeft(
+        _transposedTiles(board.currentTiles),
+      );
+      board.previousTiles = board.currentTiles;
+      board.currentTiles = _transposedTiles(mergedBoard);
+    }
+
+    notifyListeners();
+  }
+
+  void moveDown() {
+    _clearFlags();
+    if (_canMergeAnyTile()) {
+      List<List<Tile>> mergedBoard = _mergeLeft(
+        _mirroredTiles(_transposedTiles(board.currentTiles)),
+      );
+      board.previousTiles = board.currentTiles;
+
+      board.currentTiles = _transposedTiles(_mirroredTiles(mergedBoard));
+    }
+    notifyListeners();
+  }
+
+  void moveRight() {
+    _clearFlags();
+    if (_canMergeAnyTile()) {
+      List<List<Tile>> mergedBoard = _mergeLeft(
+        _mirroredTiles(board.currentTiles),
+      );
+      board.previousTiles = board.currentTiles;
+      board.currentTiles = _mirroredTiles(mergedBoard);
+    }
+    notifyListeners();
+  }
+
+  void moveLeft() {
+    _clearFlags();
+    if (_canMergeAnyTile()) {
+      board.previousTiles = board.currentTiles;
+      board.currentTiles = _mergeLeft(board.currentTiles);
+    }
+
+    notifyListeners();
+  }
+
+  void resetGame() {
+    _initBoard();
+    notifyListeners();
+  }
+
+  void undoMove() {
+    if (board.previousTiles != null) {
+      board.currentTiles = board.previousTiles!;
+      notifyListeners();
+    }
+  }
+}

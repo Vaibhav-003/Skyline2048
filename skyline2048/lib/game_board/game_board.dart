@@ -6,65 +6,113 @@ import 'package:skyline2048/tile/tile_widget.dart';
 class GameBoard extends StatelessWidget {
   const GameBoard({super.key});
 
-  Widget? _buildTile(int index, GameProvider gameProvider) {
-    final tileIndexes = gameProvider.board.currentTiles.keys.toList();
-
-    return (tileIndexes.contains(index))
-        ? Tile(tileIndex: gameProvider.board.currentTiles[tileIndexes[0]] ?? 1)
-        : null;
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.lightBlue.shade100,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        padding: EdgeInsets.all(10),
-        width: MediaQuery.of(context).size.width - 60,
-        height: MediaQuery.of(context).size.width - 60,
+    final width = MediaQuery.of(context).size.width;
+    final boardSize = width * 0.8;
+    final gap = width * 0.025;
+    final padding = gap; // proportional to screen width, same unit as gap
 
-        child: Consumer<GameProvider>(
-          builder: (context, gameProvider, child) => GridView.builder(
-            itemCount: 16,
-            padding: EdgeInsets.zero,
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 10,
-              crossAxisCount: 4,
-            ),
-            itemBuilder: (context, index) {
-              final currentTiles = gameProvider.board.currentTiles;
-              print('currentTiles: $currentTiles');
-              final tileIndexes = currentTiles.keys.toList();
-              print('tileIndexes: $tileIndexes');
-              List<Widget> tiles = List.filled(16, SizedBox.shrink());
-              for (var index in tileIndexes) {
-                print('index: $index');
-                print('currentTiles[$index]: ${currentTiles[index]}');
-                tiles[index] = Tile(tileIndex: (currentTiles[index] ?? 0));
+    // Cell size derived from board geometry.
+    final cellSize = (boardSize - 2 * padding - 3 * gap) / 4;
+    final borderRadius = gap;
+
+    // Helpers to convert row/col → pixel offsets inside the board Stack.
+    double left(int col) => padding + col * (cellSize + gap);
+    double top(int row) => padding + row * (cellSize + gap);
+
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          'Merge bricks to build the Burj Khalifa!',
+          style: TextStyle(fontSize: 16),
+        ),
+        SizedBox(height: width * 0.02),
+        Consumer<GameProvider>(
+          builder: (context, gameProvider, child) => GestureDetector(
+            // ── Swipe detection ──────────────────────────────────────────────
+            onVerticalDragEnd: (details) {
+              final velocity = details.primaryVelocity ?? 0;
+              if (velocity > 0) {
+                gameProvider.moveDown();
+              } else if (velocity < 0) {
+                gameProvider.moveUp();
               }
-              return GestureDetector(
-                onVerticalDragEnd: (details) {
-                  print(details);
-                },
-                onHorizontalDragEnd: (details) {
-                  print(details);
-                },
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: const Color.fromARGB(255, 182, 202, 211),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: tiles[index],
-                ),
-              );
+              if (velocity != 0) {
+                Future.delayed(const Duration(milliseconds: 200), () {
+                  gameProvider.addNewTile();
+                });
+              }
             },
+            onHorizontalDragEnd: (details) {
+              final velocity = details.primaryVelocity ?? 0;
+              if (velocity > 0) {
+                gameProvider.moveRight();
+              } else if (velocity < 0) {
+                gameProvider.moveLeft();
+              }
+              if (velocity != 0) {
+                Future.delayed(const Duration(milliseconds: 200), () {
+                  gameProvider.addNewTile();
+                });
+              }
+            },
+
+            // ── Board container ───────────────────────────────────────────────
+            child: Container(
+              width: boardSize,
+              height: boardSize,
+              decoration: BoxDecoration(
+                color: Colors.lightBlue.shade100,
+                borderRadius: BorderRadius.circular(borderRadius),
+              ),
+              child: Stack(
+                children: [
+                  // ── 1. Static background cells (empty slots) ──────────────
+                  ...List.generate(4, (row) {
+                    return List.generate(4, (col) {
+                      return Positioned(
+                        left: left(col),
+                        top: top(row),
+                        width: cellSize,
+                        height: cellSize,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: const Color.fromARGB(255, 182, 202, 211),
+                            borderRadius: BorderRadius.circular(borderRadius),
+                          ),
+                        ),
+                      );
+                    });
+                  }).expand((list) => list),
+
+                  // ── 2. Animated tiles ─────────────────────────────────────
+                  // Each tile is tracked by its unique [Tile.id] via ValueKey.
+                  // AnimatedPositioned slides the tile when its row/col changes.
+                  // TileWidget handles the spawn pop and merge pulse internally.
+                  ...gameProvider.tilePositions.map((entry) {
+                    return AnimatedPositioned(
+                      key: ValueKey(entry.tile.id),
+                      duration: const Duration(milliseconds: 120),
+                      curve: Curves.easeOut,
+                      left: left(entry.col),
+                      top: top(entry.row),
+                      width: cellSize,
+                      height: cellSize,
+                      child: TileWidget(
+                        tile: entry.tile,
+                        size: cellSize,
+                        borderRadius: borderRadius,
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
           ),
         ),
-      ),
+      ],
     );
   }
 }
