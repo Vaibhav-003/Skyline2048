@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:skyline2048/app_theme.dart';
 import 'package:skyline2048/viewmodels/game_viewmodel.dart';
 import 'package:skyline2048/views/widgets/tile_widget.dart';
 
@@ -55,7 +56,7 @@ class GameBoard extends StatelessWidget {
             width: boardSize,
             height: boardSize,
             decoration: BoxDecoration(
-              color: Colors.lightBlue.shade100,
+              color: AppTheme.cardColor,
               borderRadius: BorderRadius.circular(borderRadius),
             ),
             child: Stack(
@@ -70,7 +71,7 @@ class GameBoard extends StatelessWidget {
                       height: cellSize,
                       child: Container(
                         decoration: BoxDecoration(
-                          color: const Color.fromARGB(255, 182, 202, 211),
+                          color: AppTheme.boardCellColor,
                           borderRadius: BorderRadius.circular(borderRadius),
                         ),
                       ),

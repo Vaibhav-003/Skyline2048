@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:skyline2048/app_theme.dart';
 import 'package:skyline2048/viewmodels/game_viewmodel.dart';
 
 enum ScoreType { score, best }
@@ -28,25 +29,19 @@ class ScoreColumn extends StatelessWidget {
           Container(
             width: width / 4,
             decoration: BoxDecoration(
-              color: Colors.lightBlue.shade100,
-              borderRadius: BorderRadius.circular(width * 0.02),
+              color: AppTheme.cardColor,
+              borderRadius: AppTheme.cardRadius(width),
             ),
             padding: EdgeInsets.all(width * 0.05),
             child: Column(
               children: [
-                Text(
-                  title,
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
+                Text(title, style: AppTheme.scoreStyle),
                 Consumer<GameViewModel>(
                   builder: (context, gameViewModel, child) {
-                    return Text(
-                      '${scoreType == ScoreType.score ? gameViewModel.board.score : gameViewModel.bestScore}',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    );
+                    final value = scoreType == ScoreType.score
+                        ? gameViewModel.board.score
+                        : gameViewModel.bestScore;
+                    return Text('$value', style: AppTheme.scoreStyle);
                   },
                 ),
               ],
@@ -56,8 +51,8 @@ class ScoreColumn extends StatelessWidget {
           Container(
             width: width / 4,
             decoration: BoxDecoration(
-              color: Colors.lightBlue.shade100,
-              borderRadius: BorderRadius.circular(width * 0.02),
+              color: AppTheme.cardColor,
+              borderRadius: AppTheme.cardRadius(width),
             ),
             padding: EdgeInsets.all(width * 0.02),
             child: IconButton(onPressed: onPressed, icon: Icon(icon)),

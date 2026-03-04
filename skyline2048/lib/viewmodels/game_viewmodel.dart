@@ -1,7 +1,9 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:skyline2048/data/repositories/board_repository.dart';
 import 'package:skyline2048/models/board.dart';
+import 'package:skyline2048/models/score_entry.dart';
 import 'package:skyline2048/models/tile.dart';
 
 /// ViewModel for the game. Holds all game state and business logic.
@@ -26,6 +28,9 @@ class GameViewModel extends ChangeNotifier {
   // ------- state -------
   late Board board;
 
+  /// Prevents saving the same game-over moment twice.
+  bool _scoreAlreadySaved = false;
+
   int _bestScore = 0;
   int get bestScore {
     if (board.score > _bestScore) {
@@ -40,6 +45,10 @@ class GameViewModel extends ChangeNotifier {
 
   void _initBoard() {
     final positions = _twoDistinctIndexes(16);
+    final bestScores = BoardRepository().loadBestScores();
+    if (bestScores != null) {
+      _bestScore = bestScores.first;
+    }
     board = Board(
       currentTiles: List.generate(4, (row) {
         return List.generate(4, (col) {
@@ -105,7 +114,7 @@ class GameViewModel extends ChangeNotifier {
   // ------- public API -------
 
   void addNewTile() {
-    if (_isGameOver) return;
+    if (isGameOver) return;
     final empty = <(int, int)>[];
     for (int r = 0; r < 4; r++) {
       for (int c = 0; c < 4; c++) {
@@ -121,8 +130,33 @@ class GameViewModel extends ChangeNotifier {
       value: _probability > randomDouble ? 1 : 2,
       isNew: true,
     );
+
+    // Save top score the first time game-over is detected.
+    if (isGameOver && !_scoreAlreadySaved) {
+      saveCurrentScore();
+    }
     notifyListeners();
   }
+
+  /// Persists the current score as a [ScoreEntry] in the top-5 list.
+  /// Called automatically on game-over, and also when the user exits mid-game.
+  void saveCurrentScore() {
+    if (_scoreAlreadySaved || board.score == 0) return;
+    _scoreAlreadySaved = true;
+    final highestTile = tiles
+        .map((t) => t.value)
+        .fold(0, (max, v) => v > max ? v : max);
+    BoardRepository().saveTopScore(
+      ScoreEntry(
+        score: board.score,
+        dateMs: DateTime.now().millisecondsSinceEpoch,
+        highestTileValue: highestTile,
+      ),
+    );
+  }
+
+  /// Exposes the persisted top-5 score entries for the Best Scores screen.
+  List<ScoreEntry> get topScores => BoardRepository().loadTopScores();
 
   List<List<Tile>> _transposedTiles(List<List<Tile>> tiles) {
     return List.generate(4, (col) {
@@ -140,13 +174,13 @@ class GameViewModel extends ChangeNotifier {
     });
   }
 
-  bool get _isGameOver {
+  bool get isGameOver {
     if (board.currentTiles.any(
       (element) => element.any((element) => element.value == 0),
     )) {
       return false;
     }
-    return _canMergeAnyTile();
+    return !_canMergeAnyTile();
   }
 
   bool _canMergeAnyTile() {
@@ -233,6 +267,7 @@ class GameViewModel extends ChangeNotifier {
   }
 
   void resetGame() {
+    _scoreAlreadySaved = false;
     _initBoard();
     notifyListeners();
   }

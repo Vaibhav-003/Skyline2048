@@ -41,58 +41,63 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: Colors.white,
         body: Padding(
           padding: EdgeInsets.all(width * 0.075),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: <Widget>[
-              Flexible(
-                child: SvgPicture.asset(
+          child: SizedBox(
+            width: double.infinity,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: <Widget>[
+                SvgPicture.asset(
                   'assets/skyline_logo.svg',
-                  height: 400,
+                  height: 200,
                   width: double.infinity,
                 ),
-              ),
-              Text(
-                'SKYLINE \n2048',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  context.read<GameViewModel>().resetGame();
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const GameScreen()),
-                  );
+                Text(
+                  'SKYLINE \n2048',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () {
+                    context.read<GameViewModel>().resetGame();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const GameScreen(),
+                      ),
+                    );
+                  },
+                  child: const Text('Play'),
+                ),
+                if (_isGameSaved) ...{
+                  SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const GameScreen(),
+                        ),
+                      );
+                    },
+                    child: const Text('Continue'),
+                  ),
                 },
-                child: const Text('Play'),
-              ),
-              if (_isGameSaved) ...{
                 SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const GameScreen()),
+                      MaterialPageRoute(
+                        builder: (context) => const BestScoresScreen(),
+                      ),
                     );
                   },
-                  child: const Text('Continue'),
+                  child: const Text('Best Scores'),
                 ),
-              },
-              SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const BestScoresScreen(),
-                    ),
-                  );
-                },
-                child: const Text('Best Scores'),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
